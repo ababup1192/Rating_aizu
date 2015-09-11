@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 require "tk"
-require_relative './model/execute_management.rb'
+# require_relative './model/execute_management.rb'
+require_relative './model/io.rb'
 require_relative './model/file_management.rb'
 require_relative './model/point_management.rb'
 require_relative './model/setting.rb'
@@ -84,7 +85,6 @@ class MainWindow
     # list shotcut key
     @shortcut_flag = false
     @list.bind('Key', proc{|e|
-         puts e.keycode
        case e.keycode
        when 67, 8058628
          @shortcut_flag = true
@@ -140,8 +140,22 @@ class MainWindow
   end
   def exec_source(file_path,directory_path)
     @em = nil if !@em.nil?
-    @em = ExecuteManagement.new(file_path,directory_path)
-    @em.exec(self,@setting.compile_command,@setting.exec_command,@setting.test_data)
+    Thread.new{
+      comp_executor = CommandExecutor.new(@setting.compile_command, 3, file_path, directory_path)
+      run_executor = CommandExecutor.new(@setting.exec_command, 3, file_path, directory_path)
+      comp_executor.execute()
+      run_executor.execute()
+      loop{
+        if !comp_executor.result.nil? && !run_executor.nil? then
+          p comp_executor.result
+          p run_executor.result
+          break
+        end
+        sleep 0.2
+      }
+    }
+      # @em = ExecuteManagement.new(file_path,directory_path)
+    # @em.exec(self,@setting.compile_command,@setting.exec_command,@setting.test_data)
   end
   def rating_setting
     @file = FileManagement.new(@setting.rating_directory,@setting.file_extension,@setting.delimiter,@setting.result)
